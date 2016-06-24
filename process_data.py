@@ -29,6 +29,9 @@ class Question(object):
         """
         Output question in desired JSON format for writing to disk:
         {question: title, body: question_text, answers: [list of form {text: answer_text, comments: [list of comment_text]}], comments: [list of comments_text]}
+        Note "comments" refers to the comments on the main question post, not tied to any answer
+        "Answers" is a list of answers each of which has the form: {'text': answer content,
+                            'comments': list of comments for given answer}
         """
         q_data = {"question": self.title, "body": self.body, "comments": self.comments, "answers": self.answers}
         return json.dumps(q_data)
@@ -69,11 +72,10 @@ class SNLPData(object):
         :param tags:
         :return:
         """
-        nlp_qlink = []
-        nlp_qid = []
-        nlp_qtitle = []
         snlp_questions = []
 
+        # Note the below includes an API key registered to my app to
+        # increase the number of requests quota
         so = stackexchange.Site(stackexchange.StackOverflow, "r*tSlw7sx8F7mBqKB6RGiA((")
 
         # To ensure that body and comments are also included
@@ -82,11 +84,6 @@ class SNLPData(object):
         count = 0
         start = time.time()
         for q in all_questions(tagged=tags):
-            print "Question number: ", count
-            nlp_qid.append(q.question_id)
-            nlp_qlink.append(q.link)
-            nlp_qtitle.append(q.title)
-
             # Get question comments body if any
             q_comments = []
             try:
@@ -114,6 +111,7 @@ class SNLPData(object):
                 answer_comments = []
                 for c in a.comments:
                     answer_comments.append(c.body)
+
                 # Note the reversing of the comments list to preserve the order in the original post
                 answers.append({"text": a.body, "comments": answer_comments[::-1]})
 
