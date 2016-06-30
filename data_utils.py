@@ -2,7 +2,7 @@ import collections
 import json
 
 
-def data_statistics(data_file):
+def so_data_statistics(data_file):
     """
     Report statistics such as number of comments/answers/questions for given data
     :param data_file: json of data file
@@ -41,5 +41,21 @@ def data_statistics(data_file):
            comment_to_num_questions
 
 
+def lists_data_statistics(data_file):
+    with open(data_file, "rb") as f:
+        data = json.load(f)
+
+    answer_to_num_questions = collections.Counter()
+    num_questions = len(data)
+
+    for title, thread in data.iteritems():
+        num_answers = len(thread)-1
+        answer_to_num_questions[num_answers] += 1
+
+    print "Num questions: {0}".format(num_questions)
+    print "Answers map: ", answer_to_num_questions
+
+
 if __name__ == "__main__":
-    data_statistics("questions.json")
+    #so_data_statistics("questions.json")
+    lists_data_statistics("nlp_user_questions_space.json")
