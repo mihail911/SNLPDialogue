@@ -1,6 +1,6 @@
 import json
 
-from data_utils import clean_so_text, extract_text_vocab
+from data_utils import clean_text, extract_text_vocab
 from vocab import gen_vocab_file
 
 
@@ -37,7 +37,7 @@ def gen_data(so_data_fn, mailman_data_fn):
             question = json.loads(question)
 
             q_body = question["body"].encode("utf-8")
-            q_body = clean_so_text(q_body)
+            q_body = clean_text(q_body)
 
             answers = question["answers"]
             comments = question["comments"]
@@ -50,7 +50,7 @@ def gen_data(so_data_fn, mailman_data_fn):
             curr_c = ""
             for c in comments:
                 c = c.encode("utf-8")
-                c = clean_so_text(c)
+                c = clean_text(c)
                 src = q_body + curr_c
                 target = c
                 output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
@@ -63,7 +63,7 @@ def gen_data(so_data_fn, mailman_data_fn):
             curr_a = ""
             for a in answers:
                 a_text = a["text"].encode("utf-8")
-                a_text = clean_so_text(a_text)
+                a_text = clean_text(a_text)
                 src = q_body + curr_a
                 target = a_text
                 output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
@@ -76,7 +76,7 @@ def gen_data(so_data_fn, mailman_data_fn):
                 curr_a_c = ""
                 for a_c in a_comments:
                     a_c = a_c.encode("utf-8")
-                    a_c = clean_so_text(a_c)
+                    a_c = clean_text(a_c)
                     src = a_text + curr_a_c
                     target = a_c
 
@@ -93,10 +93,12 @@ def gen_data(so_data_fn, mailman_data_fn):
                 continue
 
             question = thread[0].encode("utf-8)")
+            question = clean_text(question)
             curr_a = ""
-            for t in thread:
+            for t in thread[1:]:
                 # TODO: Remove "-----" string
                 t = t.encode("utf-8")
+                t = clean_text(t)
                 src = question + curr_a
                 target = t
                 output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
@@ -118,11 +120,7 @@ def tokenize_data(data_file, vocab_word_to_idx):
     with open(data_file, "rb") as f:
         tokenized_file = open("data/data_tokenized.txt", "wb")
 
-        idx = 1
-        count = 0
         for example in f:
-            if count > 5: break
-
             idx, src, target = example.split("\t")
             _, src_tokens = extract_text_vocab(src)
             _, target_tokens = extract_text_vocab(target)
@@ -131,17 +129,23 @@ def tokenize_data(data_file, vocab_word_to_idx):
 
             # Write src tokens indices
             for s in src_tokens:
+                #print "-" * 100
+                #print "Source: ", s
                 tokenized_file.write(str(vocab_word_to_idx[s]) + " ")
 
             tokenized_file.write("\t")
+
             # Write target tokens indices
             for t in target_tokens:
                 tokenized_file.write(str(vocab_word_to_idx[t]) + " ")
 
             tokenized_file.write("\n")
 
-            count += 1
-            idx += 1
 
         tokenized_file.close()
 
+
+if __name__ == "__main__":
+    _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
+    gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
+    tokenize_data("data/data_sentences.txt", total_word_to_idx)

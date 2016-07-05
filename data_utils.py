@@ -6,9 +6,9 @@ import re
 # TODO: Build glove vecs using corpus of Java code?
 # TODO: Generate train/dev/test split of data -- can do that later
 
-def clean_so_text(so_text):
+def clean_text(text):
     """
-    Clean data from Stack Overflow, removing <p> and <code> and various other tags
+    Clean data from data sources, removing <p> and <code> and various other tags
     :param so_text:
     :return:
     """
@@ -16,9 +16,10 @@ def clean_so_text(so_text):
 
     str_to_replace = ["<code>", "</code", "<p>", "</p>", "<pre>", "</pre>",
                       "<blockquote>", "</blockquote>", "\n", "<em>", "</em>",
-                      "<strong>", "</strong>", "\t"]
+                      "<strong>", "</strong>", "\t", "<li>", "</li>", "<ol>", "</ol>",
+                      "div", "</div>"]
 
-    new_str = so_text
+    new_str = text
     for s in str_to_replace:
         new_str = new_str.replace(s, "")
 
@@ -33,8 +34,10 @@ def extract_text_vocab(text):
     """
     text_tokens = re.findall(r"<|>|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:", text)
     lower_tokens = [t.lower() for t in text_tokens]
-    return set(lower_tokens), lower_tokens
+    #if "eos" in lower_tokens or "EOS" in lower_tokens:
+     #   print "EOS FOUND in: ", lower_tokens
 
+    return set(lower_tokens), lower_tokens
 
 
 def so_data_statistics(data_file):
@@ -92,6 +95,7 @@ def lists_data_statistics(data_file):
 
 
 if __name__ == "__main__":
+    pass
     #so_data_statistics("questions.json")j
     #lists_data_statistics("nlp_user_questions_space.json")
     #get_so_vocab("snlp_so_questions.json", True)
@@ -101,6 +105,6 @@ if __name__ == "__main__":
     #print "Len missing SO: ", len(so.difference(glv_vocab))
     #print "Len missing mailman: ", len(mailman.difference(glv_vocab))
     #print "Len missing combined: ", len(combined.difference(glv_vocab))
-    _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
-    gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
-    tokenize_data("data/data_sentences.txt", total_word_to_idx)
+    #_, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
+    #gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
+    #tokenize_data("data/data_sentences.txt", total_word_to_idx)

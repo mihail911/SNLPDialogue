@@ -2,7 +2,7 @@ import collections
 import cPickle as pickle
 import json
 
-from data_utils import extract_text_vocab, clean_so_text
+from data_utils import extract_text_vocab, clean_text
 
 """
 General utilities for generating relevant vocabularies from data.
@@ -42,6 +42,8 @@ def get_so_vocab(data_file, skip_no_answer=False):
         question = json.loads(question)
 
         q_body = question["body"]
+        q_body = clean_text(q_body)
+
         answers = question["answers"]
         comments = question["comments"]
 
@@ -58,7 +60,7 @@ def get_so_vocab(data_file, skip_no_answer=False):
         # Extract vocab from question comments
         for c in comments:
             c = c.encode("utf-8")
-            c = clean_so_text(c)
+            c = clean_text(c)
             c_voc, c_list = extract_text_vocab(c)
             vocab_freq.update(c_voc)
             vocab.update(c_voc)
@@ -66,7 +68,7 @@ def get_so_vocab(data_file, skip_no_answer=False):
         # Extract vocab from question answers and answer comments
         for a in answers:
             a_text = a["text"].encode("utf-8")
-            a_text = clean_so_text(a_text)
+            a_text = clean_text(a_text)
             a_voc, a_list = extract_text_vocab(a_text)
             vocab_freq.update(a_voc)
             vocab.update(a_voc)
@@ -74,7 +76,7 @@ def get_so_vocab(data_file, skip_no_answer=False):
             a_comments = a["comments"]
             for a_c in a_comments:
                 a_c = a_c.encode("utf-8")
-                a_c = clean_so_text(a_c)
+                a_c = clean_text(a_c)
                 a_c_vocab, a_c_list = extract_text_vocab(a_c)
                 vocab_freq.update(a_c_vocab)
                 vocab.update(a_c_vocab)
@@ -105,12 +107,11 @@ def get_mailman_vocab(data_file, skip_no_answer=False):
 
         thread_vocab = set()
         for t in thread:
-            thread_voc, thread_list = extract_text_vocab(t)
+            thread_voc, thread_list = extract_text_vocab(clean_text(t))
             vocab_freq.update(thread_voc)
             thread_vocab.update(thread_voc)
 
         vocab.update(thread_vocab)
-
 
     return vocab, vocab_freq
 
@@ -125,8 +126,8 @@ def gen_vocab_file():
     total_word_to_idx = {}
     total_vocab = set()
     total_freq = collections.Counter()
-    so_vocab, so_freq = get_so_vocab("data/snlp_so_questions.json")
-    mailman_vocab, mailman_freq = get_mailman_vocab("data/nlp_user_questions_space.json")
+    so_vocab, so_freq = get_so_vocab("data/snlp_so_questions.json", skip_no_answer=True)
+    mailman_vocab, mailman_freq = get_mailman_vocab("data/nlp_user_questions_space.json", skip_no_answer=True)
 
     # Update total vocab set
     total_vocab.update(so_vocab)
@@ -140,59 +141,45 @@ def gen_vocab_file():
     print "Len mailman vocab: ", len(mailman_vocab)
     print "Len total vocab: ", len(total_vocab)
 
-    # Note manually add 0 -> EOS, 1 -> <unk> for compatibility with gen_emb.py
+    # Note manually add 0 <-> EOS, 1 <-> <unk> for compatibility with gen_emb.py
 
     # Generate vocab files for SO
-    idx = 2
     so_word_to_idx = {}
-    with open("data/so_vocab.txt", "wb") as f:
-        f.write("0" + "\t" + "EOS" + "\n")
-        f.write("1" + "\t" + "<unk>" + "\n")
-        so_word_to_idx["EOS"] = 0
-        so_word_to_idx["<unk>"] = 1
-
-        for w in so_vocab:
-            so_word_to_idx[w] = idx
-            f.write(str(idx) + "\t" + w + "\n")
-            idx += 1
+    write_vocab_file("data/so_vocab.txt", so_vocab, so_word_to_idx)
 
     # Generate vocab files for mailman
-    idx = 2
     mailman_word_to_idx = {}
-    with open("data/mailman_vocab.txt", "wb") as f:
-        f.write("0" + "\t" + "EOS" + "\n")
-        f.write("1" + "\t" + "<unk>" + "\n")
-        mailman_word_to_idx["EOS"] = 0
-        mailman_word_to_idx["<unk>"] = 1
-
-        for w in mailman_vocab:
-            mailman_word_to_idx[w] = idx
-            f.write(str(idx) + "\t" + w + "\n")
-            idx += 1
+    write_vocab_file("data/mailman_vocab", mailman_vocab, mailman_word_to_idx)
 
     # Generate vocab files for combined
-    idx = 2
     total_word_to_idx = {}
-    with open("data/so+mailman_vocab.txt", "wb") as f:
-        f.write("0" + "\t" + "EOS" + "\n")
-        f.write("1" + "\t" + "<unk>" + "\n")
-        total_word_to_idx["EOS"] = 0
-        total_word_to_idx["<unk>"] = 1
-
-        for w in total_vocab:
-            total_word_to_idx[w] = idx
-            f.write(str(idx) + "\t" + w + "\n")
-            idx += 1
-
-    # Pickle mapping files
-    with open("data/so_word_to_idx.pkl", "wb") as f:
-        pickle.dump(so_word_to_idx, f)
-
-    with open("data/mailman_word_to_idx.pkl", "wb") as f:
-        pickle.dump(mailman_word_to_idx, f)
-
-    with open("data/total_word_to_idx.pkl", "wb") as f:
-        pickle.dump(total_word_to_idx, f)
+    write_vocab_file("data/so+mailman_vocab.txt", total_vocab, total_word_to_idx)
 
     return so_vocab, mailman_vocab, total_vocab,\
            so_word_to_idx, mailman_word_to_idx, total_word_to_idx
+
+
+def write_vocab_file(file_name, vocab, word_to_idx):
+    """
+    Writes vocab file to given file_name and populate word_to_idx mapping
+    and pickles mapping
+    :param file_name:
+    :param word_to_idx:
+    :return:
+    """
+    idx = 2
+    with open(file_name + ".txt", "wb") as f:
+        f.write("0" + "\t" + "eos" + "\n")
+        f.write("1" + "\t" + "<unk>" + "\n")
+        word_to_idx["eos"] = 0
+        word_to_idx["<unk>"] = 1
+
+        for w in vocab:
+            if w == "eos": continue
+            word_to_idx[w] = idx
+            f.write(str(idx) + "\t" + w + "\n")
+            idx += 1
+
+    # Pickle resulting word to index mapping
+    with open(file_name + ".pkl", "wb") as f:
+        pickle.dump(word_to_idx, f)
