@@ -4,6 +4,7 @@ import stackexchange
 import sys
 import time
 
+
 class Question(object):
     """
     Custom type representing question with desired information
