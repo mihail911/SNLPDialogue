@@ -1,9 +1,51 @@
 import json
+import numpy as np
 
 from data_utils import clean_text, extract_text_vocab
 from vocab import gen_vocab_file
 
 
+def gen_data_split(data_file, split):
+    """
+    Provide a tuple train/dev/test split for creating
+    :param data_file:
+    :return:
+    """
+    total_points = 0.0
+    with open(data_file, "r") as f:
+        for line in f:
+            total_points += 1
+
+    random_idx = np.random.permutation(np.arange(total_points))
+
+    first_split = split[0] * total_points
+    second_split = round(first_split + split[1] * total_points)
+    idx_splits = np.split(random_idx, [first_split, second_split])
+
+    train, val, test = set(idx_splits[0]), set(idx_splits[1]), set(idx_splits[2])
+
+    train_file = open("data/train_tokenized.txt", "w")
+    val_file = open("data/val_tokenized.txt", "w")
+    test_file = open("data/test_tokenized.txt", "w")
+
+    idx = 0.0
+    with open(data_file, "r") as f:
+         for point in f:
+            if idx in train:
+                train_file.write(point)
+            elif idx in val:
+                val_file.write(point)
+            else:
+                test_file.write(point)
+
+            idx += 1
+
+    train_file.close()
+    val_file.close()
+    test_file.close()
+
+
+# TODO: May not need to manually add EOS to front and end here
 def gen_data(so_data_fn, mailman_data_fn):
     """
     Output data to desired format (i.e. ex. id \t src utterance \t tgt utterance).
@@ -53,7 +95,7 @@ def gen_data(so_data_fn, mailman_data_fn):
                 c = clean_text(c)
                 src = q_body + curr_c
                 target = c
-                output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
+                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
 
                 curr_c += " " + c
 
@@ -66,7 +108,7 @@ def gen_data(so_data_fn, mailman_data_fn):
                 a_text = clean_text(a_text)
                 src = q_body + curr_a
                 target = a_text
-                output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
+                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
 
                 curr_a += " " + a_text
                 a_idx += 1
@@ -80,7 +122,7 @@ def gen_data(so_data_fn, mailman_data_fn):
                     src = a_text + curr_a_c
                     target = a_c
 
-                    output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
+                    output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
 
                     curr_a_c += " " + a_c
                     a_idx += 1
@@ -101,7 +143,7 @@ def gen_data(so_data_fn, mailman_data_fn):
                 t = clean_text(t)
                 src = question + curr_a
                 target = t
-                output_file.write(str(a_idx) + "\t" + src + "\t" + "EOS" + " " + target + " " + "EOS" + "\n")
+                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
 
                 curr_a += " " + t
                 a_idx += 1
@@ -141,11 +183,14 @@ def tokenize_data(data_file, vocab_word_to_idx):
 
             tokenized_file.write("\n")
 
-
         tokenized_file.close()
 
 
 if __name__ == "__main__":
     _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
-    gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
-    tokenize_data("data/data_sentences.txt", total_word_to_idx)
+    #gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
+    #tokenize_data("data/data_sentences.txt", total_word_to_idx)
+
+    print "Generating data split..."
+    split = [0.8, 0.1, 0.1]
+    gen_data_split("data/data_tokenized.txt", split)
