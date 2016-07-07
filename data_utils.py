@@ -94,8 +94,44 @@ def lists_data_statistics(data_file):
     print "Answers map: ", answer_to_num_questions
 
 
+def compute_data_len(data_file):
+    """
+    Compute average src and target sequences for data file
+    :param data_file:
+    :return:
+    """
+    max_src_len = -1
+    max_target_len = -1
+
+    sum_src_lens = 0.0
+    sum_target_lens = 0.0
+
+    num_entries = 0
+    with open(data_file, "r") as f:
+        for line in f:
+            _, src, target = line.split("\t")
+            curr_src_len = len(src.strip().split(" "))
+            curr_target_len = len(target.strip().split(" "))
+
+            sum_src_lens += curr_src_len
+            sum_target_lens += curr_target_len
+
+            if curr_src_len > max_src_len:
+                max_src_len = curr_src_len
+
+            if curr_target_len > max_target_len:
+                max_target_len = curr_target_len
+
+            num_entries += 1
+
+    print "Max source length: ", max_src_len
+    print "Max target length: ", max_target_len
+
+    print "Avg source length: ", sum_src_lens / num_entries
+    print "Avg target length: ", sum_target_lens / num_entries
+
+
 if __name__ == "__main__":
-    pass
     #so_data_statistics("questions.json")j
     #lists_data_statistics("nlp_user_questions_space.json")
     #get_so_vocab("snlp_so_questions.json", True)
@@ -108,3 +144,4 @@ if __name__ == "__main__":
     #_, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
     #gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
     #tokenize_data("data/data_sentences.txt", total_word_to_idx)
+    compute_data_len("data/data_tokenized.txt")

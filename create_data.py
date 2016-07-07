@@ -150,6 +150,7 @@ def gen_data(so_data_fn, mailman_data_fn):
 
     output_file.close()
 
+# TODO: Why are certain data points malformed?
 
 def tokenize_data(data_file, vocab_word_to_idx):
     """
