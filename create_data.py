@@ -1,3 +1,4 @@
+import argparse
 import json
 import numpy as np
 
@@ -7,12 +8,13 @@ from vocab import gen_vocab_file
 
 def gen_data_split(data_file, split):
     """
-    Provide a tuple train/dev/test split for creating
-    :param data_file:
+    Provide a tuple train/dev/test split for creating appropriate data splits
+    :param data_file: Tokenized data file
+    :param data_parallel_sent: Corresponding data file with actual text
     :return:
     """
     total_points = 0.0
-    with open(data_file, "r") as f:
+    with open(data_file + "data_tokenized.txt", "r") as f:
         for line in f:
             total_points += 1
 
@@ -24,21 +26,32 @@ def gen_data_split(data_file, split):
 
     train, val, test = set(idx_splits[0]), set(idx_splits[1]), set(idx_splits[2])
 
-    train_file = open("data/train_tokenized.txt", "w")
-    val_file = open("data/val_tokenized.txt", "w")
-    test_file = open("data/test_tokenized.txt", "w")
+    train_file = open(data_file + "train_tokenized.txt", "w")
+    val_file = open(data_file + "val_tokenized.txt", "w")
+    test_file = open(data_file + "test_tokenized.txt", "w")
+
+    train_sent_file = open(data_file + "train_sentences.txt", "w")
+    val_sent_file = open(data_file + "val_sentences.txt", "w")
+    test_sent_file = open(data_file + "test_sentences.txt", "w")
 
     idx = 0.0
-    with open(data_file, "r") as f:
-         for point in f:
-            if idx in train:
-                train_file.write(point)
-            elif idx in val:
-                val_file.write(point)
-            else:
-                test_file.write(point)
+    f_sent = open(data_file + "data_parallel_sentences.txt", "r")
+    with open(data_file + "data_tokenized.txt", "r") as f:
 
-            idx += 1
+        for tok_point, sent_point in zip(f, f_sent):
+           if idx in train:
+               train_file.write(tok_point)
+               train_sent_file.write(sent_point)
+           elif idx in val:
+               val_file.write(tok_point)
+               val_sent_file.write(sent_point)
+           else:
+               test_file.write(tok_point)
+               test_sent_file.write(sent_point)
+
+           idx += 1
+
+    f_sent.close()
 
     train_file.close()
     val_file.close()
@@ -46,7 +59,7 @@ def gen_data_split(data_file, split):
 
 
 # TODO: May not need to manually add EOS to front and end here
-def gen_data(so_data_fn, mailman_data_fn):
+def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
     """
     Output data to desired format (i.e. ex. id \t src utterance \t tgt utterance).
     SO Data will output dialogues for the following sequences: Q -> [A_1, ..., A_k],
@@ -57,7 +70,7 @@ def gen_data(so_data_fn, mailman_data_fn):
     :param mailman_data_fn Filename containing mailman data (None if not using)
     :return:
     """
-    output_file = open("data/data_sentences.txt", "a+")
+    output_file = open(sent_outfile, "w")
 
     a_idx = 1
     if so_data_fn:
@@ -143,6 +156,9 @@ def gen_data(so_data_fn, mailman_data_fn):
                 t = clean_text(t)
                 src = question + curr_a
                 target = t
+                if t == "":
+                    continue
+
                 output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
 
                 curr_a += " " + t
@@ -152,16 +168,19 @@ def gen_data(so_data_fn, mailman_data_fn):
 
 # TODO: Why are certain data points malformed?
 
-def tokenize_data(data_file, vocab_word_to_idx):
+def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx):
     """
     Convert data files from word tokens to idx tokens given data word_to_idx file
     for vocab mapping
     :param data_file:
+    :param tok_outfile: output file for tokens of data
+    :param p_sent_file: output file with text of data corresponding to tokenized version
     :param vocab_word_to_idx:
     :return:
     """
     with open(data_file, "rb") as f:
-        tokenized_file = open("data/data_tokenized.txt", "wb")
+        tokenized_file = open(tok_outfile, "wb")
+        parallel_sent_file = open(p_sent_file, "wb")
 
         for example in f:
             idx, src, target = example.split("\t")
@@ -169,29 +188,42 @@ def tokenize_data(data_file, vocab_word_to_idx):
             _, target_tokens = extract_text_vocab(target)
 
             tokenized_file.write(str(idx) + "\t")
+            parallel_sent_file.write(str(idx) + "\t")
 
             # Write src tokens indices
             for s in src_tokens:
-                #print "-" * 100
-                #print "Source: ", s
                 tokenized_file.write(str(vocab_word_to_idx[s]) + " ")
+                parallel_sent_file.write(str(s) + " ")
 
             tokenized_file.write("\t")
+            parallel_sent_file.write("\t")
 
             # Write target tokens indices
             for t in target_tokens:
                 tokenized_file.write(str(vocab_word_to_idx[t]) + " ")
+                parallel_sent_file.write(str(t) + " ")
 
             tokenized_file.write("\n")
+            parallel_sent_file.write("\n")
 
         tokenized_file.close()
+        parallel_sent_file.close()
 
 
 if __name__ == "__main__":
-    _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file()
-    #gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json")
-    #tokenize_data("data/data_sentences.txt", total_word_to_idx)
+    parser = argparse.ArgumentParser(description="args for data generation")
+    parser.add_argument("--data_dir", type=str, help="directory containing all data files")
+    args = vars(parser.parse_args())
+
+    data_dir = args["data_dir"]
+    # sent_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
+    # tokenized_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
+
+    _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file(data_dir)
+    gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json", data_dir + "data_sentences.txt")
+    tokenize_data(data_dir + "data_sentences.txt", data_dir + "data_tokenized.txt",
+                  data_dir + "data_parallel_sentences.txt", total_word_to_idx)
 
     print "Generating data split..."
     split = [0.8, 0.1, 0.1]
-    gen_data_split("data/data_tokenized.txt", split)
+    gen_data_split(data_dir, split)

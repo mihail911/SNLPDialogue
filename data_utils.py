@@ -1,5 +1,6 @@
 import collections
 import cPickle as pickle
+import matplotlib.pyplot as plt
 import json
 import re
 
@@ -107,11 +108,24 @@ def compute_data_len(data_file):
     sum_target_lens = 0.0
 
     num_entries = 0
+    all_src_lens = []
+    all_target_lens = []
+
+    # Maintain frequency statistics
+    src_counter = collections.Counter()
+    target_counter = collections.Counter()
+
     with open(data_file, "r") as f:
         for line in f:
             _, src, target = line.split("\t")
             curr_src_len = len(src.strip().split(" "))
             curr_target_len = len(target.strip().split(" "))
+
+            all_src_lens.append(curr_src_len)
+            all_target_lens.append(curr_target_len)
+
+            src_counter[curr_src_len] += 1
+            target_counter[curr_target_len] += 1
 
             sum_src_lens += curr_src_len
             sum_target_lens += curr_target_len
@@ -129,6 +143,50 @@ def compute_data_len(data_file):
 
     print "Avg source length: ", sum_src_lens / num_entries
     print "Avg target length: ", sum_target_lens / num_entries
+
+    n_bins = 10000
+    # gen_histogram(n_bins, all_src_lens, "Source lengths", "Lengths",
+    # "Num with Given Length", "source_histogram")
+
+    # normed_src = [float(i)/sum(src_counter.values())
+    #                      for i in src_counter.values()]
+    # plt.scatter(src_counter.keys(), normed_src)
+    # plt.title("Num vs. Length Src Utterance")
+    # plt.savefig("Src Length")
+    # plt.clf()
+    #
+    # normed_target = [float(i)/sum(target_counter.values())
+    #                      for i in target_counter.values()]
+    # plt.scatter(target_counter.keys(), normed_target)
+    # plt.title("Num vs. Length Target Utterance")
+    # plt.savefig("Target Length")
+    # plt.clf()
+
+    threshold = 500
+    get_cdf(threshold, src_counter)
+    get_cdf(threshold, target_counter)
+
+
+def get_cdf(threshold, freq_map):
+    num_utterances = 0
+    for  u_len, count in freq_map.iteritems():
+        if u_len < threshold:
+            num_utterances += count
+
+    total = sum(freq_map.values())
+    print "Total: ", total
+    cdf = float(num_utterances) / total
+    print "CDF value for threshold {0}: {1}".format(threshold,
+                                                    str(cdf))
+
+
+def gen_histogram(n_bins, vec, title, xlabel, ylabel, filename):
+    plt.hist(vec, n_bins)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(filename)
+    plt.clf()
 
 
 if __name__ == "__main__":

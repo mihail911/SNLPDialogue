@@ -116,7 +116,7 @@ def get_mailman_vocab(data_file, skip_no_answer=False):
     return vocab, vocab_freq
 
 
-def gen_vocab_file():
+def gen_vocab_file(data_dir):
     """
     Provide a list of data files (in this case of json-encoded SO and mailman)
     and process to create a vocab file.
@@ -126,8 +126,8 @@ def gen_vocab_file():
     total_word_to_idx = {}
     total_vocab = set()
     total_freq = collections.Counter()
-    so_vocab, so_freq = get_so_vocab("data/snlp_so_questions.json", skip_no_answer=True)
-    mailman_vocab, mailman_freq = get_mailman_vocab("data/nlp_user_questions_space.json", skip_no_answer=True)
+    so_vocab, so_freq = get_so_vocab(data_dir + "snlp_so_questions.json", skip_no_answer=True)
+    mailman_vocab, mailman_freq = get_mailman_vocab(data_dir + "nlp_user_questions_space.json", skip_no_answer=True)
 
     # Update total vocab set
     total_vocab.update(so_vocab)
@@ -145,15 +145,15 @@ def gen_vocab_file():
 
     # Generate vocab files for SO
     so_word_to_idx = {}
-    write_vocab_file("data/so_vocab.txt", so_vocab, so_word_to_idx)
+    write_vocab_file(data_dir + "so_vocab.txt", so_vocab, so_word_to_idx)
 
     # Generate vocab files for mailman
     mailman_word_to_idx = {}
-    write_vocab_file("data/mailman_vocab", mailman_vocab, mailman_word_to_idx)
+    write_vocab_file(data_dir + "mailman_vocab.txt", mailman_vocab, mailman_word_to_idx)
 
     # Generate vocab files for combined
     total_word_to_idx = {}
-    write_vocab_file("data/so+mailman_vocab.txt", total_vocab, total_word_to_idx)
+    write_vocab_file(data_dir + "so+mailman_vocab.txt", total_vocab, total_word_to_idx)
 
     return so_vocab, mailman_vocab, total_vocab,\
            so_word_to_idx, mailman_word_to_idx, total_word_to_idx
@@ -168,7 +168,7 @@ def write_vocab_file(file_name, vocab, word_to_idx):
     :return:
     """
     idx = 2
-    with open(file_name + ".txt", "wb") as f:
+    with open(file_name, "wb") as f:
         f.write("0" + "\t" + "eos" + "\n")
         f.write("1" + "\t" + "<unk>" + "\n")
         word_to_idx["eos"] = 0
