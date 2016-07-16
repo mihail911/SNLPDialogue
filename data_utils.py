@@ -144,25 +144,8 @@ def compute_data_len(data_file):
     print "Avg source length: ", sum_src_lens / num_entries
     print "Avg target length: ", sum_target_lens / num_entries
 
-    n_bins = 10000
-    # gen_histogram(n_bins, all_src_lens, "Source lengths", "Lengths",
-    # "Num with Given Length", "source_histogram")
 
-    # normed_src = [float(i)/sum(src_counter.values())
-    #                      for i in src_counter.values()]
-    # plt.scatter(src_counter.keys(), normed_src)
-    # plt.title("Num vs. Length Src Utterance")
-    # plt.savefig("Src Length")
-    # plt.clf()
-    #
-    # normed_target = [float(i)/sum(target_counter.values())
-    #                      for i in target_counter.values()]
-    # plt.scatter(target_counter.keys(), normed_target)
-    # plt.title("Num vs. Length Target Utterance")
-    # plt.savefig("Target Length")
-    # plt.clf()
-
-    threshold = 500
+    threshold = 350
     get_cdf(threshold, src_counter)
     get_cdf(threshold, target_counter)
 

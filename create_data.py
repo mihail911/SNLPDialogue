@@ -108,7 +108,7 @@ def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
                 c = clean_text(c)
                 src = q_body + curr_c
                 target = c
-                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
+                output_file.write(str(a_idx) + "\t" + target + "\t" + src + "\n")
 
                 curr_c += " " + c
 
@@ -121,7 +121,7 @@ def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
                 a_text = clean_text(a_text)
                 src = q_body + curr_a
                 target = a_text
-                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
+                output_file.write(str(a_idx) + "\t" + target + "\t" + src + "\n")
 
                 curr_a += " " + a_text
                 a_idx += 1
@@ -135,7 +135,7 @@ def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
                     src = a_text + curr_a_c
                     target = a_c
 
-                    output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
+                    output_file.write(str(a_idx) + "\t" + target + "\t" + src + "\n")
 
                     curr_a_c += " " + a_c
                     a_idx += 1
@@ -159,7 +159,7 @@ def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
                 if t == "":
                     continue
 
-                output_file.write(str(a_idx) + "\t" + src + "\t" + target + "\n")
+                output_file.write(str(a_idx) + "\t" + target + "\t" + src + "\n")
 
                 curr_a += " " + t
                 a_idx += 1
@@ -190,18 +190,18 @@ def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx):
             tokenized_file.write(str(idx) + "\t")
             parallel_sent_file.write(str(idx) + "\t")
 
-            # Write src tokens indices
-            for s in src_tokens:
-                tokenized_file.write(str(vocab_word_to_idx[s]) + " ")
-                parallel_sent_file.write(str(s) + " ")
-
-            tokenized_file.write("\t")
-            parallel_sent_file.write("\t")
-
             # Write target tokens indices
             for t in target_tokens:
                 tokenized_file.write(str(vocab_word_to_idx[t]) + " ")
                 parallel_sent_file.write(str(t) + " ")
+
+            tokenized_file.write("\t")
+            parallel_sent_file.write("\t")
+
+            # Write source tokens indices
+            for s in src_tokens:
+                tokenized_file.write(str(vocab_word_to_idx[s]) + " ")
+                parallel_sent_file.write(str(s) + " ")
 
             tokenized_file.write("\n")
             parallel_sent_file.write("\n")
