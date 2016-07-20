@@ -6,7 +6,7 @@ from data_utils import clean_text, extract_text_vocab
 from vocab import gen_vocab_file
 
 
-def gen_data_split(data_file, split):
+def gen_data_split(data_file, prefix, split):
     """
     Provide a tuple train/dev/test split for creating appropriate data splits
     :param data_file: Tokenized data file
@@ -14,7 +14,7 @@ def gen_data_split(data_file, split):
     :return:
     """
     total_points = 0.0
-    with open(data_file + "data_tokenized.txt", "r") as f:
+    with open(data_file + prefix + "_tok.txt", "r") as f:
         for line in f:
             total_points += 1
 
@@ -26,17 +26,17 @@ def gen_data_split(data_file, split):
 
     train, val, test = set(idx_splits[0]), set(idx_splits[1]), set(idx_splits[2])
 
-    train_file = open(data_file + "train_tokenized.txt", "w")
-    val_file = open(data_file + "val_tokenized.txt", "w")
-    test_file = open(data_file + "test_tokenized.txt", "w")
+    train_file = open(data_file + prefix + "_train_tok.txt", "w")
+    val_file = open(data_file + prefix + "_val_tok.txt", "w")
+    test_file = open(data_file + prefix + "_test_tok.txt", "w")
 
-    train_sent_file = open(data_file + "train_sentences.txt", "w")
-    val_sent_file = open(data_file + "val_sentences.txt", "w")
-    test_sent_file = open(data_file + "test_sentences.txt", "w")
+    train_sent_file = open(data_file + prefix + "_train_sent.txt", "w")
+    val_sent_file = open(data_file + prefix + "_val_sent.txt", "w")
+    test_sent_file = open(data_file + prefix + "_test_sent.txt", "w")
 
     idx = 0.0
-    f_sent = open(data_file + "data_parallel_sentences.txt", "r")
-    with open(data_file + "data_tokenized.txt", "r") as f:
+    f_sent = open(data_file + prefix + "_par_sent.txt", "r")
+    with open(data_file + prefix + "_tok.txt", "r") as f:
 
         for tok_point, sent_point in zip(f, f_sent):
            if idx in train:
@@ -58,7 +58,6 @@ def gen_data_split(data_file, split):
     test_file.close()
 
 
-# TODO: May not need to manually add EOS to front and end here
 def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
     """
     Output data to desired format (i.e. ex. id \t src utterance \t tgt utterance).
@@ -166,9 +165,8 @@ def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
 
     output_file.close()
 
-# TODO: Why are certain data points malformed?
 
-def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx):
+def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx, re_patterns):
     """
     Convert data files from word tokens to idx tokens given data word_to_idx file
     for vocab mapping
@@ -184,8 +182,8 @@ def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx):
 
         for example in f:
             idx, src, target = example.split("\t")
-            _, src_tokens = extract_text_vocab(src)
-            _, target_tokens = extract_text_vocab(target)
+            _, src_tokens = extract_text_vocab(src, re_patterns)
+            _, target_tokens = extract_text_vocab(target, re_patterns)
 
             tokenized_file.write(str(idx) + "\t")
             parallel_sent_file.write(str(idx) + "\t")

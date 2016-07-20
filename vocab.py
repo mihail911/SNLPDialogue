@@ -123,7 +123,6 @@ def gen_vocab_file(data_dir):
     :param data_files:
     :return:
     """
-    total_word_to_idx = {}
     total_vocab = set()
     total_freq = collections.Counter()
     so_vocab, so_freq = get_so_vocab(data_dir + "snlp_so_questions.json", skip_no_answer=True)

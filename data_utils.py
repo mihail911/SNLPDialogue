@@ -27,16 +27,16 @@ def clean_text(text):
     return new_str
 
 
-def extract_text_vocab(text):
+re_pattern = r"<|>|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:"
+
+def extract_text_vocab(text, re_pattern):
     """
     Tokenize text and return a set and list of vocab words
     :param text:
     :return:
     """
-    text_tokens = re.findall(r"<|>|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:", text)
+    text_tokens = re.findall(re_pattern, text)
     lower_tokens = [t.lower() for t in text_tokens]
-    #if "eos" in lower_tokens or "EOS" in lower_tokens:
-     #   print "EOS FOUND in: ", lower_tokens
 
     return set(lower_tokens), lower_tokens
 
