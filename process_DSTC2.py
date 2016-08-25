@@ -72,6 +72,9 @@ def extract_dialogues(filename, pkl_filename, restaurant_db):
         pickle.dump(dialogues, f)
 
 
+attr_names = ['name', 'R_post_code', 'R_cuisine', 'R_location', 'R_phone', 'R_address',
+                  'R_price', 'R_rating']
+
 def format_attr(restr_list):
     """
     Return list of tuples of restaurant info formatted as:
@@ -79,9 +82,6 @@ def format_attr(restr_list):
     :param restr_attr:  dict of restaurant
     :return:
     """
-    attr_names = ['name', 'R_post_code', 'R_cuisine', 'R_location', 'R_phone', 'R_address',
-                  'R_price', 'R_rating']
-
     restr_tuples = []
     for rest in restr_list:
         attr = []
@@ -116,6 +116,41 @@ def process_api_results(api_results):
     restaurants = format_attr(restaurant_info)
 
     return restaurants
+
+
+def get_dialogue_restr(dialogue_file, db):
+    """
+    Save dict mapping from dialogue number to set of potential candidates
+    :param dialogue_file:
+    :param db:
+    :return:
+    """
+    c = sqlite3.connect(db)
+    curs = c.cursor()
+
+    with open(dialogue_file, "r") as f:
+        dialogues = pickle.load(f)
+
+    for idx, dial in enumerate(dialogues):
+        dial = dial[::-1]
+        for _, system in dial:
+            tokens = system.split()
+            api_call = []
+            # Found an api_call
+            if tokens[0] == "api_call":
+                for t in tokens[1:]:
+                    if t in attr_names:
+                        api_call.append("%")
+                    else:
+                        api_call.append(t)
+
+                api_call = tuple(api_call)
+                curs.execute("SELECT * FROM Restaurants WHERE cuisine LIKE ? "
+                         "and location LIKE ? and price LIKE ?", api_call)
+                api_response = curs.fetchall()
+                rests = set([entry[0] for entry in api_response])
+                
+                break
 
 
 def consolidate_dialogues(train_pickle, dev_pickle, test_pickle, outfile):
@@ -154,7 +189,6 @@ def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
     :param dialogue_db:
     :return:
     """
-    #re_patterns = r"<|>|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:"
     word_to_idx = {}
     vocab_set = set()
 
@@ -243,13 +277,14 @@ all_pickle = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data
 db_file = "/Users/mihaileric/Documents/Research/SNLPDialogue/data/dstc2.db"
 
 
-extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
-extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
-extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
+#extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
+#extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
+#extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
 #
 # # Consolidate
 # consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
 
+get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
 
 
 # word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
