@@ -310,25 +310,25 @@ all_pickle = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data
 
 db_file = "/Users/mihaileric/Documents/Research/SNLPDialogue/data/dstc2.db"
 
+if __name__ == "__main__":
+    #extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
+    #extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
+    #extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
+    #
+    # # Consolidate
+    # consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
 
-#extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
-#extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
-#extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
-#
-# # Consolidate
-# consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
+    dial_restr = get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
+    # Save to disk
+    with open("dialogue_restaurants.pkl", "w") as f:
+        pickle.dump(dial_restr, f)
 
-dial_restr = get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
-# Save to disk
-with open("dialogue_restaurants.pkl", "w") as f:
-    pickle.dump(dial_restr, f)
+    # word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
+    # create_dialogues_file(all_pickle, "dstc2_sentences.txt")
+    # tokenize_data("dstc2_sentences.txt", "dstc2_tok.txt", "dstc2_par_sent.txt",
+    #               word_to_idx, re_patterns)
+    #
+    # gen_data_split("/Users/mihaileric/Documents/Research/SNLPDialogue/data/", "dstc2", [0.8, 0.1, 0.1])
 
-# word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
-# create_dialogues_file(all_pickle, "dstc2_sentences.txt")
-# tokenize_data("dstc2_sentences.txt", "dstc2_tok.txt", "dstc2_par_sent.txt",
-#               word_to_idx, re_patterns)
-#
-# gen_data_split("/Users/mihaileric/Documents/Research/SNLPDialogue/data/", "dstc2", [0.8, 0.1, 0.1])
-
-# compute_data_len("dstc2_sentences.txt")
+    # compute_data_len("dstc2_sentences.txt")
 
