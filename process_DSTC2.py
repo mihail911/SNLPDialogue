@@ -1,11 +1,13 @@
+import collections
 import dill as pickle
 import sqlite3
 import json
 import os
 import os.path
+import pprint
 
 from create_data import tokenize_data, gen_data_split
-from data_utils import extract_text_vocab
+from data_utils import extract_text_vocab, compute_data_len
 
 
 def extract_dialogues(filename, pkl_filename, restaurant_db):
@@ -20,6 +22,7 @@ def extract_dialogues(filename, pkl_filename, restaurant_db):
     if not os.path.exists(restaurant_db):
         conn = sqlite3.connect(restaurant_db)
         c = conn.cursor()
+        print "Creating DB"
         c.execute("""CREATE TABLE Restaurants (name text unique, post_code text, cuisine text, location text,
               phone text, address text, price text, rating text)""")
         conn.commit()
@@ -69,6 +72,30 @@ def extract_dialogues(filename, pkl_filename, restaurant_db):
         pickle.dump(dialogues, f)
 
 
+def format_attr(restr_list):
+    """
+    Return list of tuples of restaurant info formatted as:
+    (name, post_code, cuisine, location, phone, address, price, rating)
+    :param restr_attr:  dict of restaurant
+    :return:
+    """
+    attr_names = ['name', 'R_post_code', 'R_cuisine', 'R_location', 'R_phone', 'R_address',
+                  'R_price', 'R_rating']
+
+    restr_tuples = []
+    for rest in restr_list:
+        attr = []
+        for n in attr_names:
+            try:
+                attr.append(restr_list[rest][n])
+            except:
+                attr.append('')
+
+        restr_tuples.append(tuple(attr))
+
+    return restr_tuples
+
+
 def process_api_results(api_results):
     """
     Process api results extracting restaurant information
@@ -76,16 +103,17 @@ def process_api_results(api_results):
     :param api_results:
     :return:
     """
-    restaurants = []
-    curr_rest = []
+
+    restaurant_info = collections.defaultdict(dict)
     for idx, result in enumerate(api_results):
         values = result.split(" ")
-        if len(curr_rest) == 0:
-            curr_rest.append(values[0])
-        curr_rest.append(values[2])
-        if (idx+1) % 7 == 0:
-            restaurants.append(tuple(curr_rest))
-            curr_rest = []
+
+        # Populate dict of restaurant
+        restaurant_info[values[0]]['name'] = values[0]
+        restaurant_info[values[0]][values[1]] = values[2]
+
+
+    restaurants = format_attr(restaurant_info)
 
     return restaurants
 
@@ -138,11 +166,6 @@ def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
             user_set, user_tokens = extract_text_vocab(user, re_patterns)
             system_set, system_tokens = extract_text_vocab(system, re_patterns)
 
-            # print user
-            # print system
-            # print user_tokens
-            # print system_tokens
-            # print "-"*100
             count += 1
 
             vocab_set.update(system_set)
@@ -158,7 +181,6 @@ def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
     for e in entries:
         vocab_set.update(set(e))
 
-    #print vocab_set, len(vocab_set)
 
     # Output vocab mapping to file
     idx = 2
@@ -185,7 +207,6 @@ def create_dialogues_file(filename, outfilename):
     :param filename:
     :return:
     """
-    d_idx = 1
 
     f_dialogue = open(filename, "r")
     dialogues = pickle.load(f_dialogue)
@@ -193,27 +214,21 @@ def create_dialogues_file(filename, outfilename):
     outfile = open(outfilename, "w")
 
 
-    for dialogue in dialogues:
+    for idx, dialogue in enumerate(dialogues):
         curr_src = ""
+
         for user, system in dialogue:
             src = curr_src + " " + user
             target = system
-            outfile.write(str(d_idx) + "\t" + target + "\t" + src + "\n")
+            outfile.write(str(idx) + "\t" + target + "\t" + src + "\n")
 
             # Update curr_src
             curr_src += " " + user + " " + system
 
-            d_idx += 1
 
     f_dialogue.close()
     outfile.close()
 
-# def create_tokenized_data(sentences_file, word_to_idx, tok_outfile, p_se):
-#     """
-#     Create tokenized data file
-#     :param sentences_file:
-#     :return:
-#     """
 
 
 train_filename = "/Users/mihaileric/Documents/Research/Data/dialog-bAbI-tasks/dialog-babi-task6-dstc2-trn.txt"
@@ -225,21 +240,24 @@ dev_pickle = "dev_dialogues.pkl"
 test_pickle = "test_dialogues.pkl"
 all_pickle = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/dstc2_all_dialogues.pkl"
 
-db_file = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/dstc2.db"
+db_file = "/Users/mihaileric/Documents/Research/SNLPDialogue/data/dstc2.db"
 
 
-# extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
-# extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
-# extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
+extract_dialogues(train_filename, train_pickle, restaurant_db=db_file)
+extract_dialogues(dev_filename, dev_pickle, restaurant_db=db_file)
+extract_dialogues(test_filename, test_pickle, restaurant_db=db_file)
 #
 # # Consolidate
 # consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
 
 
 
-word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
-#create_dialogues_file(all_pickle, "dstc2_sentences.txt")
-#tokenize_data("dstc2_sentences.txt", "dstc2_tok.txt", "dstc2_par_sent.txt",
-#              word_to_idx, re_patterns)
+# word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
+# create_dialogues_file(all_pickle, "dstc2_sentences.txt")
+# tokenize_data("dstc2_sentences.txt", "dstc2_tok.txt", "dstc2_par_sent.txt",
+#               word_to_idx, re_patterns)
+#
+# gen_data_split("/Users/mihaileric/Documents/Research/SNLPDialogue/data/", "dstc2", [0.8, 0.1, 0.1])
 
-gen_data_split("/Users/mihaileric/Documents/Research/SNLPDialogue/data/", "dstc2", [0.8, 0.1, 0.1])
+# compute_data_len("dstc2_sentences.txt")
+
