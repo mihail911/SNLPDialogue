@@ -118,9 +118,22 @@ def process_api_results(api_results):
     return restaurants
 
 
+def get_all_restaurants(db):
+    """
+    Get a list of all restaurants in db
+    :param db:
+    :return:
+    """
+    conn = sqlite3.connect(db)
+    curs = conn.cursor()
+    curs.execute("SELECT name FROM Restaurants")
+
+    return set([r[0] for r in curs.fetchall()])
+
+
 def get_dialogue_restr(dialogue_file, db):
     """
-    Save dict mapping from dialogue number to set of potential candidates
+    Save dict mapping from dialogue number to set of potential candidates in dialogue
     :param dialogue_file:
     :param db:
     :return:
@@ -131,6 +144,9 @@ def get_dialogue_restr(dialogue_file, db):
     with open(dialogue_file, "r") as f:
         dialogues = pickle.load(f)
 
+    dial_to_rests = collections.defaultdict(set)
+
+    # Get restr. candidates from api_calls
     for idx, dial in enumerate(dialogues):
         dial = dial[::-1]
         for _, system in dial:
@@ -149,8 +165,26 @@ def get_dialogue_restr(dialogue_file, db):
                          "and location LIKE ? and price LIKE ?", api_call)
                 api_response = curs.fetchall()
                 rests = set([entry[0] for entry in api_response])
-                
+
+                # Update which restaurants map for given dialogue
+                dial_to_rests[idx] = rests
                 break
+
+    # Get restr. candidates by string-matching from set of all restaurants
+    all_restr = get_all_restaurants(db)
+    for idx, dial in enumerate(dialogues):
+        dial_text = reduce(lambda m,n: m + " " + n[0] + " " + n[1], dial, "")
+        dial_restr = set()
+        for restr in all_restr:
+            if restr == "ask": continue
+            restr_clean = " ".join(restr.split("_"))
+            if restr_clean in dial_text or restr in dial_text:
+                dial_restr.add(restr)
+
+        dial_to_rests[idx].update(dial_restr)
+
+
+    return dial_to_rests
 
 
 def consolidate_dialogues(train_pickle, dev_pickle, test_pickle, outfile):
@@ -284,8 +318,10 @@ db_file = "/Users/mihaileric/Documents/Research/SNLPDialogue/data/dstc2.db"
 # # Consolidate
 # consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
 
-get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
-
+dial_restr = get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
+# Save to disk
+with open("dialogue_restaurants.pkl", "w") as f:
+    pickle.dump(dial_restr, f)
 
 # word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
 # create_dialogues_file(all_pickle, "dstc2_sentences.txt")
