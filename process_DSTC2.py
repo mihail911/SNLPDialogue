@@ -10,6 +10,76 @@ from create_data import tokenize_data, gen_data_split
 from data_utils import extract_text_vocab, compute_data_len
 
 
+def get_entity_name_values(db_file):
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+
+    entity_names = ['price', 'cuisine', 'location']
+    name_to_values = collections.defaultdict(set)
+
+    with open(db_file, 'r') as f:
+        for name in entity_names:
+            c.execute("SELECT {0} FROM Restaurants".format(name))
+            values = [v[0] for v in c.fetchall() if v[0] != ""]
+            name_to_values[name] = set(values)
+
+    return name_to_values
+
+
+def get_canonicalized_entities(entities):
+    """
+    Return set of canonicalized entities to add to vocabulary
+    :param entity_names:
+    :return:
+    """
+    canonicalized = set()
+    for name, values in entities.items():
+        for v in values:
+            canonicalized.add("({0},{1})".format(name, v))
+
+    return canonicalized
+
+
+def canonicalize(utterance, entities):
+    """
+    Canonicalize input utterance
+    :param input:
+    :param entity_names:
+    :return:
+    """
+    # Hard-code special cases
+    utterance = utterance.replace("moderately priced", "moderate")
+
+    # Canonicalize the rest
+    for name, values in entities.items():
+        for v in values:
+            if v in utterance:
+                utterance = utterance.replace(v, "({0},{1})".format(name, v))
+
+    return utterance
+
+
+def entity_link(data_file, out_file, entities):
+    """ Given requestable slots above, replace attributes with entity-linked
+     format. (entity_name, entity_value) where entity_name
+    :param data:
+    :return:
+    """
+    f_out = open(out_file, "w")
+
+    with open(data_file, "r") as f:
+        # Process each example
+        for example in f:
+            d_num, src, target = example.split("\t")
+
+            src_new = canonicalize(src, entities)
+            target_new = canonicalize(target, entities)
+
+            f_out.write(d_num + "\t" + src_new + "\t" + target_new)
+
+    f_out.close()
+
+
 def extract_dialogues(filename, pkl_filename, restaurant_db):
     """
     Extract dialogues from given filename as list of lists
@@ -216,7 +286,7 @@ def consolidate_dialogues(train_pickle, dev_pickle, test_pickle, outfile):
 
 re_patterns = r"<|>|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:"
 
-def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
+def extract_dialogue_vocab(dialogue_file, canonicalized_entities, db_file, outfile_name):
     """
     Extract vocab file and populate word_to_idx mapping
     :param dialogue_file:
@@ -249,6 +319,8 @@ def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
     for e in entries:
         vocab_set.update(set(e))
 
+    # Add canonicalized entities
+    vocab_set.update(canonicalized_entities)
 
     # Output vocab mapping to file
     idx = 2
@@ -268,7 +340,6 @@ def extract_dialogue_vocab(dialogue_file, dialogue_db, outfile_name):
     return word_to_idx
 
 
-# NOTE: Data file is outputted as target -> src for consistency with seq2seq reader implementation
 def create_dialogues_file(filename, outfilename):
     """
     Generate filename for dialogues
@@ -318,12 +389,11 @@ if __name__ == "__main__":
     # # Consolidate
     # consolidate_dialogues(train_pickle, dev_pickle, test_pickle, all_pickle)
 
-    dial_restr = get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
+    #dial_restr = get_dialogue_restr("dstc2_all_dialogues.pkl", "dstc2.db")
     # Save to disk
-    with open("dialogue_restaurants.pkl", "w") as f:
-        pickle.dump(dial_restr, f)
+    #with open("dialogue_restaurants.pkl", "w") as f:
+    #    pickle.dump(dial_restr, f)
 
-    # word_to_idx = extract_dialogue_vocab(all_pickle, db_file, "dstc2_vocab.txt")
     # create_dialogues_file(all_pickle, "dstc2_sentences.txt")
     # tokenize_data("dstc2_sentences.txt", "dstc2_tok.txt", "dstc2_par_sent.txt",
     #               word_to_idx, re_patterns)
@@ -332,3 +402,12 @@ if __name__ == "__main__":
 
     # compute_data_len("dstc2_sentences.txt")
 
+    entities = get_entity_name_values('dstc2.db')
+    can_entities = get_canonicalized_entities(entities)
+
+    word_to_idx = extract_dialogue_vocab(all_pickle, can_entities, db_file, "dstc2_vocab.txt")
+    entity_link("dstc2_val_sent.txt", "dstc2_val_can.txt", entities)
+    entity_link("dstc2_train_sent.txt", "dstc2_train_can.txt", entities)
+    entity_link("dstc2_test_sent.txt", "dstc2_test_can.txt", entities)
+
+    # Tokenize new data files
