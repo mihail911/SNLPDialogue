@@ -14,9 +14,11 @@ def gen_data_split(data_file, prefix, split):
     :return:
     """
     total_points = 0.0
+    # Get total number of dialogues
     with open(data_file + prefix + "_tok.txt", "r") as f:
         for line in f:
-            total_points += 1
+            num_dial, _, _ = line.split("\t")
+            total_points = float(num_dial)
 
     random_idx = np.random.permutation(np.arange(total_points))
 
@@ -39,10 +41,12 @@ def gen_data_split(data_file, prefix, split):
     with open(data_file + prefix + "_tok.txt", "r") as f:
 
         for tok_point, sent_point in zip(f, f_sent):
-           if idx in train:
+           d_idx, _, _ = tok_point.split("\t")
+
+           if float(d_idx) in train:
                train_file.write(tok_point)
                train_sent_file.write(sent_point)
-           elif idx in val:
+           elif float(d_idx) in val:
                val_file.write(tok_point)
                val_sent_file.write(sent_point)
            else:
@@ -58,7 +62,7 @@ def gen_data_split(data_file, prefix, split):
     test_file.close()
 
 
-def gen_data(so_data_fn, mailman_data_fn, sent_outfile):
+def gen_java_nlp_data(so_data_fn, mailman_data_fn, sent_outfile):
     """
     Output data to desired format (i.e. ex. id \t src utterance \t tgt utterance).
     SO Data will output dialogues for the following sequences: Q -> [A_1, ..., A_k],
@@ -181,7 +185,7 @@ def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx, re_pat
         parallel_sent_file = open(p_sent_file, "wb")
 
         for example in f:
-            idx, src, target = example.split("\t")
+            idx, target, src = example.split("\t")
             _, src_tokens = extract_text_vocab(src, re_patterns)
             _, target_tokens = extract_text_vocab(target, re_patterns)
 
@@ -209,19 +213,20 @@ def tokenize_data(data_file, tok_outfile, p_sent_file, vocab_word_to_idx, re_pat
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="args for data generation")
-    parser.add_argument("--data_dir", type=str, help="directory containing all data files")
-    args = vars(parser.parse_args())
-
-    data_dir = args["data_dir"]
-    # sent_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
-    # tokenized_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
-
-    _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file(data_dir)
-    gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json", data_dir + "data_sentences.txt")
-    tokenize_data(data_dir + "data_sentences.txt", data_dir + "data_tokenized.txt",
-                  data_dir + "data_parallel_sentences.txt", total_word_to_idx)
-
-    print "Generating data split..."
-    split = [0.8, 0.1, 0.1]
-    gen_data_split(data_dir, split)
+    pass
+    # parser = argparse.ArgumentParser(description="args for data generation")
+    # parser.add_argument("--data_dir", type=str, help="directory containing all data files")
+    # args = vars(parser.parse_args())
+    #
+    # data_dir = args["data_dir"]
+    # # sent_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
+    # # tokenized_outfile = "/Users/mihaileric/Documents/Research/Ford Project/textsum/src/data/"
+    #
+    # _, _, _, so_word_to_idx, mailman_word_to_idx, total_word_to_idx = gen_vocab_file(data_dir)
+    # gen_data("data/snlp_so_questions.json", "data/nlp_user_questions_space.json", data_dir + "data_sentences.txt")
+    # tokenize_data(data_dir + "data_sentences.txt", data_dir + "data_tokenized.txt",
+    #               data_dir + "data_parallel_sentences.txt", total_word_to_idx)
+    #
+    # print "Generating data split..."
+    # split = [0.8, 0.1, 0.1]
+    # gen_data_split(data_dir, split)

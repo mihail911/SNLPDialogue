@@ -35,7 +35,7 @@ def get_canonicalized_entities(entities):
     canonicalized = set()
     for name, values in entities.items():
         for v in values:
-            canonicalized.add("({0},{1})".format(name, v))
+            canonicalized.add("({0}*{1})".format(name, v))
 
     return canonicalized
 
@@ -49,14 +49,19 @@ def canonicalize(utterance, entities):
     """
     # Hard-code special cases
     utterance = utterance.replace("moderately priced", "moderate")
+    utterance_tokens = utterance.split(" ")
 
     # Canonicalize the rest
     for name, values in entities.items():
         for v in values:
-            if v in utterance:
-                utterance = utterance.replace(v, "({0},{1})".format(name, v))
+            for idx, tok in enumerate(utterance_tokens):
+                # Replace if get string match
+                if v == tok:
+                    # Separating by '*' character so regex doesn't split canonical form
+                    utterance_tokens[idx] = "({0}*{1})".format(name, v)
+                    #utterance = utterance.replace(v, "({0}*{1})".format(name, v))
 
-    return utterance
+    return " ".join(utterance_tokens)
 
 
 def entity_link(data_file, out_file, entities):
@@ -406,8 +411,17 @@ if __name__ == "__main__":
     can_entities = get_canonicalized_entities(entities)
 
     word_to_idx = extract_dialogue_vocab(all_pickle, can_entities, db_file, "dstc2_vocab.txt")
-    entity_link("dstc2_val_sent.txt", "dstc2_val_can.txt", entities)
-    entity_link("dstc2_train_sent.txt", "dstc2_train_can.txt", entities)
-    entity_link("dstc2_test_sent.txt", "dstc2_test_can.txt", entities)
+    # entity_link("dstc2_val_sent.txt", "dstc2_val_can.txt", entities)
+    # entity_link("dstc2_train_sent.txt", "dstc2_train_can.txt", entities)
+    # entity_link("dstc2_test_sent.txt", "dstc2_test_can.txt", entities)
+
+    r = r"<|>|[(\w*)]+|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:"
 
     # Tokenize new data files
+    tokenize_data("dstc2_val_can.txt", "dstc2_val_can_tok.txt", "dstc2_val_can_sent.txt",
+                   word_to_idx, r)
+    tokenize_data("dstc2_train_can.txt", "dstc2_train_can_tok.txt", "dstc2_train_can_sent.txt",
+                   word_to_idx, r)
+    tokenize_data("dstc2_test_can.txt", "dstc2_test_can_tok.txt", "dstc2_test_can_sent.txt",
+                   word_to_idx, r)
+
