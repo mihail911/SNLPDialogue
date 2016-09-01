@@ -337,6 +337,8 @@ def extract_dialogue_vocab(dialogue_file, canonicalized_entities, db_file, outfi
 
         for w in vocab_set:
             if w == "eos": continue
+            # Don't add empty token
+            if w == "": continue
             word_to_idx[w] = idx
             f.write(str(idx) + "\t" + w + "\n")
             idx += 1
@@ -410,10 +412,10 @@ if __name__ == "__main__":
     entities = get_entity_name_values('dstc2.db')
     can_entities = get_canonicalized_entities(entities)
 
-    word_to_idx = extract_dialogue_vocab(all_pickle, can_entities, db_file, "dstc2_vocab.txt")
-    # entity_link("dstc2_val_sent.txt", "dstc2_val_can.txt", entities)
-    # entity_link("dstc2_train_sent.txt", "dstc2_train_can.txt", entities)
-    # entity_link("dstc2_test_sent.txt", "dstc2_test_can.txt", entities)
+    word_to_idx = extract_dialogue_vocab(all_pickle, can_entities, db_file, "dstc2_vocab_can.txt")
+    entity_link("dstc2_val_sent.txt", "dstc2_val_can.txt", entities)
+    entity_link("dstc2_train_sent.txt", "dstc2_train_can.txt", entities)
+    entity_link("dstc2_test_sent.txt", "dstc2_test_can.txt", entities)
 
     r = r"<|>|[(\w*)]+|[\w]+|,|\?|\.|\(|\)|\\|\"|\/|;|\#|\&|\$|\%|\@|\{|\}|\+|\-|\:"
 
